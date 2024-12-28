@@ -106,6 +106,163 @@ public class Model extends Observable {
      *    value, then the leading two tiles in the direction of motion merge,
      *    and the trailing tile does not.
      * */
+
+    static class moveReturn
+    {
+        public int score;
+        public boolean changed;
+        public boolean[][] merged;
+    }
+
+    public void modify(moveReturn move, int score, boolean changed, boolean[][] merged)
+    {
+        move.score = score;
+        move.changed = changed;
+        move.merged = merged;
+    }
+
+    public moveReturn moveRowTwo(Board board, int score, boolean changed)
+    {
+        boolean merged[][] = new boolean[4][4];
+        for (int i = 0; i < board.size(); i++)
+        {
+            Tile t1 = board.tile(i, 2);
+            Tile t2 = board.tile(i, 3);
+
+            if (t1 != null)
+            {
+                if (t2 == null)
+                {
+                    board.move(i, 3, t1);
+                    changed = true;
+                }
+
+                else if (t1.value() == t2.value())
+                {
+                    board.move(i, 3, t1);
+                    t2.merge(i, 3, t1);
+                    changed = true;
+                    score += t2.value() * 2;
+                    merged[i][3] = true;
+                }
+
+                else
+                {
+                    continue;
+                }
+            }
+        }
+
+        moveReturn move = new moveReturn();
+        modify(move, score, changed, merged);
+        return move;
+    }
+
+    public moveReturn moveRowOne(Board board, int score, boolean changed)
+    {
+        moveReturn move;
+        move = moveRowTwo(board, score, changed);
+        score = move.score;
+        if (move.changed) {
+            changed = move.changed;
+        }
+        boolean[][] merged = move.merged;
+
+        for (int i = 0; i < board.size(); i++) {
+            Tile t1 = board.tile(i, 1);
+            Tile t2 = board.tile(i, 2);
+            Tile t3 = board.tile(i, 3);
+
+            if (t1 != null) {
+                if (t2 == null) {
+                    if (t3 == null) {
+                        board.move(i, 3, t1);
+                        changed = true;
+                    } else if (t1.value() == t3.value() && !merged[i][3]) {
+                        board.move(i, 3, t1);
+                        t3.merge(i, 3, t1);
+                        score += t3.value() * 2;
+                        changed = true;
+                        merged[i][3] = true;
+                    } else {
+                        board.move(i, 2, t1);
+                        changed = true;
+                    }
+                } else if (t2.value() == t1.value() && !merged[i][2]) {
+                    board.move(i, 2, t1);
+                    t2.merge(i, 2, t1);
+                    score += t2.value() * 2;
+                    changed = true;
+                    merged[i][2] = true;
+                } else {
+                    continue;
+                }
+            }
+        }
+
+        modify(move, score, changed, merged);
+        return move;
+
+    }
+
+    public moveReturn moveRowZero(Board board, int score, boolean changed)
+    {
+        moveReturn move;
+        move = moveRowOne(board, score, changed);
+        score = move.score;
+        if (move.changed)
+        {
+            changed = move.changed;
+        }
+        boolean[][] merged = move.merged;
+
+        for (int i = 0; i < board.size(); i++) {
+            Tile t1 = board.tile(i, 0);
+            Tile t2 = board.tile(i, 1);
+            Tile t3 = board.tile(i, 2);
+            Tile t4 = board.tile(i, 3);
+
+            if (t1 != null) {
+                if (t2 == null) {
+                    if (t3 == null) {
+                        if (t4 == null) {
+                            board.move(i, 3, t1);
+                            changed = true;
+                        } else if (t1.value() == t4.value() && !merged[i][3]) {
+                            board.move(i, 3, t1);
+                            t4.merge(i, 3, t1);
+                            score += t4.value() * 2;
+                            changed = true;
+                            merged[i][3] = true;
+                        } else {
+                            board.move(i, 2, t1);
+                            changed = true;
+                        }
+                    } else if (t1.value() == t3.value() && !merged[i][2]) {
+                        board.move(i, 2, t1);
+                        t3.merge(i, 2, t1);
+                        score += t3.value() * 2;
+                        changed = true;
+                        merged[i][2] = true;
+                    } else {
+                        board.move(i, 1, t1);
+                    }
+                } else if (t2.value() == t1.value() && !merged[i][1]) {
+                    board.move(i, 1, t1);
+                    t2.merge(i, 1, t1);
+                    score += t2.value() * 2;
+                    changed = true;
+                    merged[i][1] = true;
+                } else {
+                    continue;
+                }
+            }
+        }
+
+        modify(move, score, changed, merged);
+        return move;
+    }
+
     public boolean tilt(Side side) {
         boolean changed;
         changed = false;
@@ -114,30 +271,53 @@ public class Model extends Observable {
         // for the tilt to the Side SIDE. If the board changed, set the
         // changed local variable to true.
 
-        if (side == Side.NORTH)
-        {
+        moveReturn move;
 
+        if (side == Side.NORTH) {
+            move = moveRowZero(board, score, changed);
+            score = move.score;
+            if (move.changed) {
+                changed = move.changed;
+            }
         }
 
         if (side == Side.WEST)
         {
-            setViewingPerspective(side);
+            board.setViewingPerspective(side);
 
-            setViewingPerspective(Side.NORTH);
+            move = moveRowZero(board, score, changed);
+            score = move.score;
+            if (move.changed) {
+                changed = move.changed;
+            }
+
+            board.setViewingPerspective(Side.NORTH);
         }
 
         if (side == Side.EAST)
         {
-            setViewingPerspective(side);
+            board.setViewingPerspective(side);
 
-            setViewingPerspective(Side.NORTH);
+            move = moveRowZero(board, score, changed);
+            score = move.score;
+            if (move.changed) {
+                changed = move.changed;
+            }
+
+            board.setViewingPerspective(Side.NORTH);
         }
 
         if (side == Side.SOUTH)
         {
-            setViewingPerspective(side);
+            board.setViewingPerspective(side);
 
-            setViewingPerspective(Side.NORTH);
+            move = moveRowZero(board, score, changed);
+            score = move.score;
+            if (move.changed) {
+                changed = move.changed;
+            }
+
+            board.setViewingPerspective(Side.NORTH);
         }
 
         checkGameOver();
